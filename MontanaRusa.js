@@ -1,13 +1,14 @@
 import { Sky } from 'three/examples/jsm/objects/Sky.js';
 import * as THREE from "three";
 import { ParametricGeometry } from "three/examples/jsm/geometries/ParametricGeometry.js";
+import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js';
 
 
 export function MontanaRusa(scene, renderer) {
   const skyDay = new THREE.Color(0xA9F0FE);
   const skyNight = new THREE.Color(0x083258);
 
-  let dayNight = 0;
+  //let dayNight = 0;
   let baseContainer;
   const swingSpeed = 0.03;
   let swingAngle = 0;
@@ -35,15 +36,88 @@ export function MontanaRusa(scene, renderer) {
     water: new THREE.MeshPhongMaterial({ color: 0x67ffff, opacity: 0.6, transparent: true, name: "water" }),
     cement: new THREE.MeshPhongMaterial({ color: 0x828282, opacity: 1, name: "cement" }),
     oxide: new THREE.MeshPhongMaterial({ color: 0x8a0f0f, opacity: 1, name: "oxide" }),
-    tunnel: new THREE.MeshPhongMaterial({ color: 0xaaaaaa, opacity: 0.7, transparent: true, name: "tunnel" }),
+    //tunnel: new THREE.MeshPhongMaterial({ color: 0xaaaaaa, opacity: 0.7, transparent: true, name: "tunnel" }),
     plastic: new THREE.MeshPhongMaterial({ color: 0xffbf00, shininess: 150, name: "plastic" }),
+    disk: new THREE.MeshPhongMaterial({ color: 0xFF7E00, shininess: 150, name: "disk" }),
   };
   
+  const light = new THREE.DirectionalLight(0xffffff, 1);
+  light.castShadow = true;
+  
+  // Opcional: Ajustar las dimensiones del mapa de sombras para mayor precisión
+  light.shadow.mapSize.width = 1024;
+  light.shadow.mapSize.height = 1024;
+  
+  // Configuración de la cámara para sombras (solo para DirectionalLight y SpotLight)
+  light.shadow.camera.near = 0.5;
+  light.shadow.camera.far = 50;
+  light.shadow.camera.left = -10;
+  light.shadow.camera.right = 10;
+  light.shadow.camera.top = 10;
+  light.shadow.camera.bottom = -10;
+  
+  scene.add(light);
+  
+
   const textureLoader = new THREE.TextureLoader();
+
+  const tunnelColorTexture = textureLoader.load('maps/tunnelColor.jpg');
+const tunnelAlphaTexture = textureLoader.load('maps/tunnelAlpha.png');
+
+const tunnel2ColorTexture = textureLoader.load('maps/tunnelColor2.jpg');
+const tunnel2AlphaTexture = textureLoader.load('maps/tunnelAlpha2.png');
+
+const soporteColorTexture = textureLoader.load('maps/soporteColor.jpg');
+const soporteAlphaTexture = textureLoader.load('maps/soporteAlpha.png');
+
+materials.soporte = new THREE.MeshPhongMaterial({
+  map: soporteColorTexture,       // Mapa de color difuso
+  alphaMap: soporteAlphaTexture,  // Mapa de Alpha
+  transparent: false,             // Habilitar transparencias
+  side: THREE.DoubleSide,        // Renderizar ambos lados
+});
+
+// Configurar el material del túnel
+materials.tunnel = new THREE.MeshPhongMaterial({
+  map: tunnelColorTexture,       // Mapa de color difuso
+  alphaMap: tunnelAlphaTexture,  // Mapa de Alpha
+  transparent: true,             // Habilitar transparencias
+  side: THREE.DoubleSide,        // Renderizar ambos lados
+});
+
+materials.tunnel2 = new THREE.MeshPhongMaterial({
+  map: tunnel2ColorTexture,       // Mapa de color difuso
+  alphaMap: tunnel2AlphaTexture,  // Mapa de Alpha
+  transparent: true,             // Habilitar transparencias
+  side: THREE.DoubleSide,        // Renderizar ambos lados
+});
+
+// Ajustar las texturas si es necesario
+tunnelColorTexture.wrapS = tunnelColorTexture.wrapT = THREE.RepeatWrapping;
+tunnelAlphaTexture.wrapS = tunnelAlphaTexture.wrapT = THREE.RepeatWrapping;
+
+tunnel2ColorTexture.wrapS = tunnel2ColorTexture.wrapT = THREE.RepeatWrapping;
+tunnel2AlphaTexture.wrapS = tunnel2AlphaTexture.wrapT = THREE.RepeatWrapping;
+
+soporteColorTexture.wrapS = soporteColorTexture.wrapT = THREE.RepeatWrapping;
+soporteAlphaTexture.wrapS = soporteAlphaTexture.wrapT = THREE.RepeatWrapping;
+
+// Opcional: Repetir textura si es necesario
+tunnelColorTexture.repeat.set(2, 2); // Ajusta según el tamaño del túnel
+tunnelAlphaTexture.repeat.set(2, 2);
+
+tunnel2ColorTexture.repeat.set(2, 2); // Ajusta según el tamaño del túnel
+tunnel2AlphaTexture.repeat.set(2, 2);
+
+soporteColorTexture.repeat.set(2, 2); // Ajusta según el tamaño del túnel
+soporteAlphaTexture.repeat.set(2, 2);
+
+
 const grassTexture = textureLoader.load('maps/pasto.png');
 const dirtTexture = textureLoader.load('maps/tierra.png');
 const rockTexture = textureLoader.load('maps/roca.png');
 const maskTexture = textureLoader.load('maps/mask.jpg');  // Máscara para los caminos
+
 const groundShaderMaterial = new THREE.ShaderMaterial({
   uniforms: {
     grassMap: { value: grassTexture },
@@ -115,10 +189,66 @@ maskTexture.repeat.set(0.1, 0.1);
   baseContainer.add(ground);
 
     //Pileta
-    const poolGeometry = new THREE.BoxGeometry(30, 1, 20);
-    const pool = new THREE.Mesh(poolGeometry, materials.water);
-    pool.position.set(55, 0.5, -30);
-    baseContainer.add(pool);
+    // Cargar texturas necesarias
+const textureLoader = new THREE.TextureLoader();
+const normalMap1 = textureLoader.load("Water_1_M_Normal.jpg"); // Primera textura de normales
+const normalMap2 = textureLoader.load("Water_2_M_Normal.jpg"); // Segunda textura de normales
+const flowMap = textureLoader.load("Water_1_M_Flow.jpg"); // Textura para simular flujo
+
+// Cargar un entorno de reflexión
+const cubeTextureLoader = new THREE.CubeTextureLoader();
+const environmentMap = cubeTextureLoader.load([
+  "path_to_posx.jpg", // Imagen para el lado positivo del eje X
+  "path_to_negx.jpg", // Imagen para el lado negativo del eje X
+  "path_to_posy.jpg", // Imagen para el lado positivo del eje Y
+  "path_to_negy.jpg", // Imagen para el lado negativo del eje Y
+  "path_to_posz.jpg", // Imagen para el lado positivo del eje Z
+  "path_to_negz.jpg", // Imagen para el lado negativo del eje Z
+]);
+
+// Configurar el material del agua con múltiples mapas
+const waterMaterial = new THREE.MeshPhysicalMaterial({
+  color: 0x4080ff, // Color base del agua
+  roughness: 0.05, // Superficie muy reflectante
+  metalness: 0.5, // Propiedad metálica para mayor reflejo
+  normalMap: normalMap1, // Mapa de normales inicial
+  normalScale: new THREE.Vector2(0.5, 0.5), // Escalar las normales para un efecto más suave
+  envMap: environmentMap, // Reflejo del entorno
+  transmission: 0.8, // Transparencia
+  opacity: 1.0, // Totalmente visible
+  clearcoat: 1.0, // Brillo superior
+  clearcoatRoughness: 0.1, // Rugosidad del brillo
+});
+
+// Crear la piscina con el material del agua
+const poolGeometry = new THREE.BoxGeometry(30, 1, 20);
+const pool = new THREE.Mesh(poolGeometry, waterMaterial);
+pool.position.set(55, 0.5, -30);
+
+// Habilitar sombras para el agua
+pool.castShadow = true;
+pool.receiveShadow = true;
+
+// Añadir a la escena
+baseContainer.add(pool);
+
+// Configurar el entorno en la escena
+scene.environment = environmentMap; // Reflejo global
+
+// Animar el agua simulando flujo
+const clock = new THREE.Clock(); // Reloj para animación
+function animateWater() {
+  const elapsedTime = clock.getElapsedTime();
+
+  // Alternar entre normalMap1 y normalMap2 para simular perturbaciones
+  waterMaterial.normalMap = elapsedTime % 2 < 1 ? normalMap1 : normalMap2;
+
+  // Simular flujo utilizando flowMap
+  waterMaterial.normalOffset = new THREE.Vector2(
+    Math.sin(elapsedTime) * 0.1,
+    Math.cos(elapsedTime) * 0.1
+  );
+}
 
     //base de la pileta
     const basepoolGeometry = new THREE.BoxGeometry(35, 0.5, 25);
@@ -249,40 +379,75 @@ maskTexture.repeat.set(0.1, 0.1);
         new THREE.Vector3(55, 25, 10)
       ];
 
-    const densePathPoints = interpolatePoints(pathPoints, 5);
-    const curve = new THREE.CatmullRomCurve3(pathPoints, true, 'catmullrom', 0.5); // Ajusta la tensión a 0.5
-    
-    //forma del perfil del riel en forma de `{`
-    const shape = new THREE.Shape();
-    shape.moveTo(2, 2);
-    shape.bezierCurveTo(5, 0, 1.5, 1, 1.5, 0);
-    shape.bezierCurveTo(1.5, 5, -1, -2, 0, 3);
-  
-    const extrudeSettings = {
-      steps: 2000, // pasos para una extrusión suave
-      extrudePath: curve
-  };  
-    const railGeometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    const railMesh = new THREE.Mesh(railGeometry, materials.rail);
-    baseContainer.add(railMesh);
-  
-    // Longitud total de la curva
-    const curveLength = curve.getLength();
-    const supportSpacing = 13; // distancia entre soportes
-    const numSupports = Math.floor(curveLength / supportSpacing);
+   // Cargar el entorno para mapas de reflexión
+const cubeTextureLoader = new THREE.CubeTextureLoader();
+const envMap = cubeTextureLoader.load([
+  'textures/px.png', // Positivo X
+  'textures/nx.png', // Negativo X
+  'textures/py.png', // Positivo Y
+  'textures/ny.png', // Negativo Y
+  'textures/pz.png', // Positivo Z
+  'textures/nz.png', // Negativo Z
+]);
 
-    // soportes a intervalos regulares
-    const supportGeometry = new THREE.CylinderGeometry(1, 1, 4.5, 4.5);
-    for (let i = 0; i < numSupports; i++) {
-        const supportPosition = i / numSupports;
-        const point = curve.getPointAt(supportPosition);
-        const support = new THREE.Mesh(supportGeometry, materials.oxide);
+// Aplicar el mapa de entorno
+envMap.encoding = THREE.sRGBEncoding;
+scene.environment = envMap;
 
-        support.position.set(point.x, point.y / 2, point.z);
-        support.scale.y = Math.max(1, point.y / 5); 
+// Crear material metálico reflectivo para los rieles
+const railMaterial = new THREE.MeshStandardMaterial({
+  color: 0x888888, // Gris metálico
+  metalness: 1,    // Totalmente metálico
+  roughness: 0.2,  // Suavidad baja para mayor reflejo
+  envMap: envMap,  // Usar el mapa de entorno
+});
 
-        baseContainer.add(support);
-    }
+// Forma del perfil del riel
+const shape = new THREE.Shape();
+shape.moveTo(2, 2);
+shape.bezierCurveTo(5, 0, 1.5, 1, 1.5, 0);
+shape.bezierCurveTo(1.5, 5, -1, -2, 0, 3);
+
+// Curva del riel
+const densePathPoints = interpolatePoints(pathPoints, 5);
+const curve = new THREE.CatmullRomCurve3(pathPoints, true, 'catmullrom', 0.5); // Ajusta la tensión a 0.5
+
+// Configuración para la extrusión
+const extrudeSettings = {
+  steps: 2000, // pasos para una extrusión suave
+  extrudePath: curve,
+};
+
+// Geometría y malla del riel
+const railGeometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+const railMesh = new THREE.Mesh(railGeometry, railMaterial);
+railMesh.castShadow = true;    // Permitir que los rieles proyecten sombras
+railMesh.receiveShadow = true; // Permitir que reciban sombras
+baseContainer.add(railMesh);
+
+// Longitud total de la curva
+const curveLength = curve.getLength();
+const supportSpacing = 13; // distancia entre soportes
+const numSupports = Math.floor(curveLength / supportSpacing);
+
+// Geometría y mallas para los soportes
+const supportGeometry = new THREE.CylinderGeometry(1, 1, 4.5, 32); // Más segmentos para suavidad
+for (let i = 0; i < numSupports; i++) {
+  const supportPosition = i / numSupports;
+  const point = curve.getPointAt(supportPosition);
+
+  const support = new THREE.Mesh(supportGeometry, materials.soporte);
+  support.position.set(point.x, point.y / 2, point.z);
+  support.scale.y = Math.max(1, point.y / 5); // Escalar según altura
+  support.castShadow = true;
+  support.receiveShadow = true;
+
+  baseContainer.add(support);
+}
+
+// Configuración del renderizador para sombras
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Sombras suaves
 
     let lampPostHeight = randomFloat(2, 7);
 
@@ -309,10 +474,7 @@ maskTexture.repeat.set(0.1, 0.1);
 const cart = createCart(materials); 
 // Crear el carrito
 const carrito = new THREE.Object3D();
-// Crear la cámara en el carrito
-const cameraCarrito = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-cameraCarrito.position.set(0, 1, -2); // Ajusta esta posición para que quede correctamente en el carrito
-carrito.add(cameraCarrito);
+
 scene.add(carrito);
 
 
@@ -344,6 +506,7 @@ function interpolatePoints(points, divisions = 10) {
 }
 
 // Tuneles
+// Función para el túnel con forma de óvalo estirado
 function ovaloEstirado() {
   return function (u, v, target) {
       u *= 2 * Math.PI;
@@ -354,19 +517,46 @@ function ovaloEstirado() {
 
       puntoOvalo.applyMatrix4(matrizEscalado).applyMatrix4(matrizTraslacion);
       target.set(puntoOvalo.x, puntoOvalo.y, puntoOvalo.z);
-  }
+  };
 }
-const geometry2 = new ParametricGeometry(ovaloEstirado(), 100, 100);
-const material2 = new THREE.MeshPhongMaterial({ color: 0xE226E2, shininess: 150, side: THREE.DoubleSide });
-const mesh2 = new THREE.Mesh(geometry2, material2);
-mesh2.translateX(-15);
-mesh2.translateY(18);
-mesh2.translateZ(-20);
-mesh2.rotateX(Math.PI / 2);
-mesh2.rotateZ(Math.PI / 2);
-scene.add(mesh2);
-const tunnel = ovaloEstirado();
 
+// Geometría del túnel
+const geometry2 = new ParametricGeometry(ovaloEstirado(), 100, 100);
+
+// Material con texturas para el túnel (mapa de color y Alpha)
+const tunnelColorTexture = textureLoader.load('maps/tunnelColor.jpg');
+const tunnelAlphaTexture = textureLoader.load('maps/tunnelAlpha.png');
+tunnelColorTexture.wrapS = tunnelColorTexture.wrapT = THREE.RepeatWrapping;
+tunnelAlphaTexture.wrapS = tunnelAlphaTexture.wrapT = THREE.RepeatWrapping;
+
+// Configurar el material del túnel
+const tunnelMaterial = new THREE.MeshPhongMaterial({
+  map: tunnelColorTexture,       // Mapa de color difuso
+  alphaMap: tunnelAlphaTexture,  // Mapa de Alpha
+  transparent: true,             // Habilitar transparencias
+  side: THREE.DoubleSide,        // Renderizar ambos lados
+});
+
+// Mesh del túnel
+const tunnelMesh = new THREE.Mesh(geometry2, tunnelMaterial);
+tunnelMesh.castShadow = true;    // Permitir que el túnel proyecte sombras
+tunnelMesh.receiveShadow = true; // Permitir que reciba sombras
+scene.add(tunnelMesh);
+
+// Ajustar las coordenadas UV (opcional si el mapeo UV ya está correcto)
+geometry2.attributes.uv.needsUpdate = true;
+
+// Configuración del renderizador y sombras
+renderer.shadowMap.enabled = true; // Habilitar mapas de sombras
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Opcional: sombra suave
+
+
+// Opcional: Transformaciones adicionales al túnel
+tunnelMesh.translateX(-15);
+tunnelMesh.translateY(18);
+tunnelMesh.translateZ(-20);
+tunnelMesh.rotateX(Math.PI / 2);
+tunnelMesh.rotateZ(Math.PI / 2);
 
   function espiral() {
     const shape = new THREE.Shape();
@@ -388,16 +578,42 @@ const tunnel = ovaloEstirado();
     }
 }
 
-const geometry1 = new ParametricGeometry(espiral(), 100, 100);
-const material1 = new THREE.MeshPhongMaterial({ color: 0x26E22F, shininess: 150, side: THREE.DoubleSide });
-const mesh1 = new THREE.Mesh(geometry1, material1);
-mesh1.translateX(-56);
-mesh1.translateY(18);
-mesh1.translateZ(5);
-mesh1.rotateX(Math.PI / 2);
-scene.add(mesh1);
+/***desde aca la actualoxacion */
 
-const tunnel2 = espiral();
+//Geometría del túnel
+const geometry1 = new ParametricGeometry(espiral(), 100, 100);
+
+// Material con texturas para el túnel (mapa de color y Alpha)
+const tunnel2ColorTexture = textureLoader.load('maps/tunnelColor2.jpg');
+const tunnel2AlphaTexture = textureLoader.load('maps/tunnelAlpha2.png');
+tunnel2ColorTexture.wrapS = tunnel2ColorTexture.wrapT = THREE.RepeatWrapping;
+tunnel2AlphaTexture.wrapS = tunnel2AlphaTexture.wrapT = THREE.RepeatWrapping;
+
+// Configurar el material del túnel
+const tunnel2Material = new THREE.MeshPhongMaterial({
+  map: tunnel2ColorTexture,       // Mapa de color difuso
+  alphaMap: tunnel2AlphaTexture,  // Mapa de Alpha
+  transparent: true,             // Habilitar transparencias
+  side: THREE.DoubleSide,        // Renderizar ambos lados
+});
+
+// Mesh del túnel
+const tunnelMesh2 = new THREE.Mesh(geometry1, tunnel2Material);
+tunnelMesh2.castShadow = true;    // Permitir que el túnel proyecte sombras
+tunnelMesh2.receiveShadow = true; // Permitir que reciba sombras
+scene.add(tunnelMesh2);
+
+// Ajustar las coordenadas UV (opcional si el mapeo UV ya está correcto)
+geometry1.attributes.uv.needsUpdate = true;
+
+// Configuración del renderizador y sombras
+renderer.shadowMap.enabled = true; // Habilitar mapas de sombras
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Opcional: sombra suave
+
+tunnelMesh2.translateX(-56);
+tunnelMesh2.translateY(18);
+tunnelMesh2.translateZ(5);
+tunnelMesh2.rotateX(Math.PI / 2);
 
 
 // Animar el carrito
@@ -482,13 +698,18 @@ scene.add(cart);
     const baseGeometry = new THREE.CylinderGeometry(1, 1, 10, 32);
     const base = new THREE.Mesh(baseGeometry, materials.cement);
     base.position.y = 5;
+    base.castShadow = true;
+base.receiveShadow = true;
     swingGroup.add(base);
   
     // Disco superior que rota
     const diskGeometry = new THREE.CylinderGeometry(5, 5, 0.5, 32);
-    const disk = new THREE.Mesh(diskGeometry, materials.plastic);
+    const disk = new THREE.Mesh(diskGeometry, materials.disk);
     disk.position.y = 10;
+    disk.castShadow = true;
+    disk.receiveShadow = true;
     swingGroup.add(disk);
+    
   
     const numChairs = 8; 
     const chairDistance = 5; 
@@ -511,6 +732,8 @@ scene.add(cart);
       const chainGeometry = new THREE.CylinderGeometry(0.05, 0.05, chainLength, 8);
       const chain = new THREE.Mesh(chainGeometry, materials.oxide);
       chain.position.y = -chainLength / 2; // Centrar la cadena verticalmente
+      chain.castShadow = true;
+      chain.receiveShadow = true;
       chainGroup.add(chain);
   
       // silla (asiento)
@@ -518,21 +741,16 @@ scene.add(cart);
       const seatGeometry = new THREE.BoxGeometry(1, 0.4, 1);
       const seat = new THREE.Mesh(seatGeometry, materials.plastic);
       seat.position.y = -chainLength - 0.1; // Colocar el asiento al final de la cadena
+      seat.castShadow = true;
+      seat.receiveShadow = true;
       chairGroup.add(seat);
-
-      // Crear la silla voladora
-const sillaVoladora = new THREE.Object3D();
-// Crear la cámara en la silla voladora
-const cameraSilla = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-cameraSilla.position.set(0, 1, -2); // Ajusta esta posición para que quede correctamente en la silla
-sillaVoladora.add(cameraSilla);
-scene.add(sillaVoladora);
-
   
       // respaldo
       const backrestGeometry = new THREE.BoxGeometry(1, 1.5, 0.2);
       const backrest = new THREE.Mesh(backrestGeometry, materials.plastic);
       backrest.position.set(0, -chainLength + 1, -0.4); // Ajustar la posición del respaldo
+      backrest.castShadow = true;
+      backrest.receiveShadow = true;
       chairGroup.add(backrest);
   
       // apoyabrazos
@@ -541,6 +759,10 @@ scene.add(sillaVoladora);
       const rightArmrest = new THREE.Mesh(armrestGeometry, materials.plastic);
       leftArmrest.position.set(-0.4, -chainLength - 0.2, 0);
       rightArmrest.position.set(0.4, -chainLength - 0.2, 0);
+      leftArmrest.castShadow = true;
+    leftArmrest.receiveShadow = true;
+    rightArmrest.castShadow = true;
+    rightArmrest.receiveShadow = true;
       chairGroup.add(leftArmrest);
       chairGroup.add(rightArmrest);
   
@@ -564,57 +786,183 @@ scene.add(sillaVoladora);
 
 
   ///Desde aca la iluminacion
+// Inicializamos las luces
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+directionalLight.position.set(50, 50, 50); // Ajusta la posición según lo necesario
+scene.add(directionalLight);
 
-  // Inicializamos las luces
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-  directionalLight.position.set(50, 50, 50); // Ajusta la posición según lo necesario
-  scene.add(directionalLight);
+const hemiLight = new THREE.HemisphereLight(0xB1E1FF, 0x6A5140, 0.6); // Luz hemisférica
+hemiLight.position.set(0, 100, 0); // Ajusta la posición
+directionalLight.castShadow = true;
+scene.add(hemiLight);
 
-  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
-  hemiLight.position.set(0, 100, 0); // Ajusta la posición de la luz hemisférica
-  scene.add(hemiLight);
+// Definimos las luces en un objeto para acceso posterior
+const lights = [directionalLight, hemiLight];
 
-  // Definimos las luces en un objeto para acceso posterior
-  const lights = [directionalLight, hemiLight];
-
-  function updateDayNight() {
-    // Interpolamos el color del cielo
-    const skyColor = new THREE.Color();
-    skyColor.lerpColors(skyDay, skyNight, dayNight);
-
-    // Establecemos el color de fondo de la escena
-    renderer.setClearColor(skyColor);
-
-    // Interpolamos la emisividad de las ventanas (más brillante por la noche)
-    const windowColor = new THREE.Color().setHSL(0.5, 0, dayNight);
-    materials["window"].emissive = windowColor;
-
-    // Ajustamos la intensidad de las luces
-  const lightIntensity = dayNight * 0.6;
-  lights.forEach((light) => {
-    if (light) {
-      light.intensity = lightIntensity;
+// Cielo
+const skyGeometry = new THREE.SphereGeometry(500, 32, 32);
+const skyMaterial = new THREE.ShaderMaterial({
+  uniforms: {
+    topColor: { value: new THREE.Color(0x87CEEB) },
+    bottomColor: { value: new THREE.Color(0xFFE4B5) },
+    dayNightFactor: { value: 0 },
+  },
+  vertexShader: `
+    varying vec3 vWorldPosition;
+    void main() {
+      vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+      vWorldPosition = worldPosition.xyz;
+      gl_Position = projectionMatrix * viewMatrix * worldPosition;
     }
-  });
+  `,
+  fragmentShader: `
+    uniform vec3 topColor;
+    uniform vec3 bottomColor;
+    uniform float dayNightFactor;
+    varying vec3 vWorldPosition;
+    void main() {
+      float heightFactor = normalize(vWorldPosition).y * 0.5 + 0.5;
+      vec3 color = mix(bottomColor, topColor, heightFactor);
+      color = mix(color, vec3(0.02, 0.02, 0.05), dayNightFactor); // Oscurecer en la noche
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `,
+  side: THREE.BackSide,
+});
+const sky = new THREE.Mesh(skyGeometry, skyMaterial);
+scene.add(sky);
 
-  if (directionalLight) {
-    directionalLight.intensity = 1 - dayNight;
-  }
-  if (hemiLight) {
-    hemiLight.intensity = 0.1 + (1 - dayNight) * 0.3;
-  }
+// Luz del sol
+const sunLight = new THREE.DirectionalLight(0xffffff, 1);
+sunLight.position.set(50, 100, 50); // Posición inicial
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.width = 1024;
+sunLight.shadow.mapSize.height = 1024;
+sunLight.shadow.camera.near = 0.1;
+sunLight.shadow.camera.far = 500;
+scene.add(sunLight);
+
+// Estrellas
+const starGeometry = new THREE.BufferGeometry();
+const starCount = 1000;
+const positions = new Float32Array(starCount * 3);
+for (let i = 0; i < starCount; i++) {
+  positions[i * 3] = (Math.random() - 0.5) * 1000;
+  positions[i * 3 + 1] = Math.random() * 500;
+  positions[i * 3 + 2] = (Math.random() - 0.5) * 1000;
 }
-  // public properties
-  Object.defineProperty(this, "dayNightFactor", {
-    get() {
-      return dayNight;
-    },
-    set(value) {
-      dayNight = value;
-      updateDayNight();
-    },
-  });
+starGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+
+const starMaterial = new THREE.PointsMaterial({
+  color: 0xffffff,
+  size: 0.5,
+  transparent: true,
+  opacity: 0,
+});
+const stars = new THREE.Points(starGeometry, starMaterial);
+scene.add(stars);
+
+// Niebla
+scene.fog = new THREE.FogExp2(0xA9F0FE, 0.002);
+
+// Funciones para actualizar
+const updateSunPosition = () => {
+  const angle = (1 - dayNight) * Math.PI; // Ángulo según el ciclo día/noche
+  const tilt = 0.3; // Inclinación
+  const sunPosition = new THREE.Vector3(
+    Math.sin(angle) * 100,
+    Math.cos(angle) * 100 * Math.cos(tilt),
+    Math.sin(tilt) * 100
+  );
+  sunLight.position.copy(sunPosition);
+  sunLight.color.setHSL(0.1, 0.7, 0.5 + 0.5 * (1 - dayNight)); // Más cálido al amanecer/atardecer
+};
+
+function updateDayNight() {
+  // Interpolamos el color del cielo
+  skyMaterial.uniforms.topColor.value = dayNight > 0.9
+    ? new THREE.Color(0x001a4d)
+    : new THREE.Color(0x87CEEB);
+  skyMaterial.uniforms.bottomColor.value = dayNight > 0.75
+    ? new THREE.Color(0x080808)
+    : new THREE.Color(0xFFE4B5);
+  skyMaterial.uniforms.dayNightFactor.value = dayNight;
+
+  // Ajustamos la emisividad de las ventanas
+  const windowColor = new THREE.Color().setHSL(0.5, 0, dayNight);
+  materials["window"].emissive = windowColor;
+
+  // Ajustamos la intensidad de las luces
+  directionalLight.intensity = 1 - dayNight;
+  hemiLight.intensity = 0.3 + (1 - dayNight) * 0.5;
+  sunLight.intensity = 1 - dayNight;
+
+  // Ajustamos las estrellas
+  starMaterial.opacity = Math.max(0, dayNight - 0.2);
+
+  // Ajustamos la niebla
+  scene.fog.color.set(dayNight > 0.5 ? 0x000000 : 0xA9F0FE);
+  scene.fog.density = dayNight > 0.5 ? 0.01 : 0.002;
+
+  // Posición del sol
+  updateSunPosition();
+}
+
+// Ciclo día/noche dinámico
+let dayNight = 0; // 0: día completo, 1: noche completa
+Object.defineProperty(this, "dayNightFactor", {
+  get() {
+    return dayNight;
+  },
+  set(value) {
+    dayNight = value;
+    updateDayNight();
+  },
+});
+
+// Inicialización
+updateDayNight();
+
 
 
   //Hata aca la iluminacion
+
+  //camaras
+  // Cámaras personalizadas
+this.cameras = {
+  orbital: new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000),
+  seat1: new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000),
+  seat2: new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000),
+  swingView: new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000),
+  swingOrbital: new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000), // Nueva cámara
+};
+
+// Posición inicial de las cámaras
+this.camerasPosition = {
+  orbital: new THREE.Vector3(80, 50, 60),
+  seat1: new THREE.Vector3(0, 5, -5),
+  seat2: new THREE.Vector3(0, 5, 5),
+  swingView: new THREE.Vector3(0, 50, 0),
+  swingOrbital: new THREE.Vector3(-70, 5, 70), // Posición orbital para las sillas voladoras
+};
+
+//this.currentCamera = "orbital"; // Cámara predeterminada
+
+// Vincular cámaras con sus posiciones iniciales
+Object.entries(this.cameras).forEach(([name, camera]) => {
+  camera.position.copy(this.camerasPosition[name]);
+  scene.add(camera); // Añadir las cámaras a la escena
+});
+
+// Métodos para manejar cámaras
+this.setCurrentCamera = (name) => {
+  if (this.cameras[name]) {
+    this.currentCamera = name;
+  }
+};
+
+this.getCurrentCamera = () => {
+  return this.cameras[this.currentCamera] || this.cameras["seat1"];
+};
+
 }
